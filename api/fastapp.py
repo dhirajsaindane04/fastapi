@@ -1,11 +1,10 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-from PIL import Image
+import fitz  # PyMuPDF
 import io
 import os
 import google.generativeai as genai
-from pdf2image import convert_from_bytes
 import json
 import logging
 
@@ -24,7 +23,7 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def get_gemini_response(input_text, image_parts):
     model = genai.GenerativeModel('gemini-1.5-flash')
-    prompt = """
+    prompt =  """
         Analyze the 'Invoice' PDF in @docs. Extract all data and format it into the following JSON structure. Ensure each field is accurately filled with data from the PDF, and if any data is missing, use null for that field. Ensure that each field is present in the output JSON, even if the value is null. For financial fields, use numeric values (integers or floats) and ensure proper formatting.
 
     {
@@ -89,18 +88,19 @@ def get_gemini_response(input_text, image_parts):
 
 async def input_image_setup(uploaded_file: UploadFile):
     if uploaded_file:
-        bytes_data = await uploaded_file.read()  # Await the read operation
+        bytes_data = await uploaded_file.read()
 
         if uploaded_file.content_type == "application/pdf":
-            images = convert_from_bytes(bytes_data)
+            pdf_document = fitz.open(stream=bytes_data, filetype="pdf")
             image_parts = []
-            for image in images:
-                with io.BytesIO() as output:
-                    image.save(output, format="PNG")
-                    image_parts.append({
-                        "mime_type": "image/png",
-                        "data": output.getvalue()
-                    })
+            for page_num in range(len(pdf_document)):
+                page = pdf_document.load_page(page_num)
+                pix = page.get_pixmap()
+                img_data = pix.tobytes("png")
+                image_parts.append({
+                    "mime_type": "image/png",
+                    "data": img_data
+                })
             return image_parts
         else:
             return [
@@ -121,7 +121,7 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="No selected file")
 
     try:
-        image_data = await input_image_setup(file)  # Await the image setup function
+        image_data = await input_image_setup(file)
         response = get_gemini_response("Extract invoice data", image_data)
         return JSONResponse(content=response)
     except FileNotFoundError as e:
