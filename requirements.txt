@@ -1,2 +1,6 @@
 fastapi
 uvicorn
+python-dotenv
+pillow
+pdf2image
+google.generativeai
