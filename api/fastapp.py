@@ -1,7 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-import fitz  # PyMuPDF
+import fitz
 import io
 import os
 import google.generativeai as genai
@@ -11,7 +11,6 @@ import logging
 # Load environment variables
 load_dotenv()
 
-# Initialize FastAPI app
 app = FastAPI()
 
 # Configure logging
@@ -21,55 +20,13 @@ logger = logging.getLogger(__name__)
 # Configure Gemini API
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
+def load_prompt(file_path: str) -> str:
+    with open(file_path, 'r') as file:
+        return file.read()
+
 def get_gemini_response(input_text, image_parts):
     model = genai.GenerativeModel('gemini-1.5-flash')
-    prompt =  """
-        Analyze the 'Invoice' PDF in @docs. Extract all data and format it into the following JSON structure. Ensure each field is accurately filled with data from the PDF, and if any data is missing, use null for that field. Ensure that each field is present in the output JSON, even if the value is null. For financial fields, use numeric values (integers or floats) and ensure proper formatting.
-
-    {
-        "buyer_address": null,
-        "buyer_city": null,
-        "buyer_country": null,
-        "buyer_name": null,
-        "buyer_postal_code": null,
-        "currency": null,
-        "due_date": null,
-        "einvoiceTypeCode": null,
-        "invoice_date": null,
-        "invoice_no": null,
-        "items": [
-            {
-                "Amt": 0.0,
-                "Description": null,
-                "Disc": 0.0,
-                "Net Amt": 0.0,
-                "No.": 0,
-                "Qty": 0.0,
-                "Tax": 0.0,
-                "U/Price": 0.0
-            }
-        ],
-        "payment_term": null,
-        "reference_no": null,
-        "supplier_service_tax_id": null,
-        "subtotal": 0.0,
-        "supplier_address": null,
-        "supplier_city": null,
-        "supplier_contact": null,
-        "supplier_country": null,
-        "supplier_email": null,
-        "supplier_name": null,
-        "supplier_postal_code": null,
-        "supplier_reg_no": null,
-        "supplier_website": null,
-        "total": 0.0,
-        "refund": 0.0,
-        "service_tax": 0.0,
-        "apply_amount": 0.0,
-        "bank_transfer": 0.0,
-        "discount":0.0
-    } make sure supplier_service_tax_id,supplier_postal_code,supplier_country,currency extracted properly
-    """
+    prompt = load_prompt('prompt.txt')
     response = model.generate_content([input_text, image_parts[0], prompt])
     
     response_text = response.text.strip()

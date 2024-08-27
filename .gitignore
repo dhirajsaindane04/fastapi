@@ -1,0 +1,35 @@
+# Virtual Environment
+venv/
+env/
+.venv/
+
+
+# Compiled Python files
+__pycache__/
+*.pyc
+
+# Flask migration folder
+migrations/
+
+# IDE and editor files
+.vscode/
+.idea/
+
+# Flask environment file
+.env
+
+# Local SQLite database file
+*.sqlite
+
+# Logs
+*.log
+
+# local config
+/local_config
+
+# db_setup_script
+db_setup.py
+
+#build folders
+/build
+/dist
