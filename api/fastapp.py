@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def load_prompt(file_path: str) -> str:
-    with open(file_path, 'r') as file:
+    base_path = os.path.dirname(__file__)  # Get the directory where fastapp.py is located
+    full_path = os.path.join(base_path, file_path)
+    with open(full_path, 'r') as file:
         return file.read()
 
 def get_gemini_response(input_text, image_parts):
